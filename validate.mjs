@@ -29,7 +29,26 @@ for(const [key,value] of Object.entries({hair:'#dfd0aa',highlights:'#efcd8c',ski
  console.log(`${key}: ${count} pixels changed`);
 }
 evalJS('state=structuredClone(initial);state.freckles=3;drawCharacter();');assert(drawnFreckles>=57);
-for(let i=0;i<4;i++){evalJS(`state.style=${i};drawCharacter();`);assert.equal(lastImage.data.length,543*724*4);}
+for(let style=0;style<4;style++){
+ evalJS(`state=structuredClone(initial);state.style=${style};drawCharacter();`);
+ const undyed=new Uint8ClampedArray(lastImage.data);
+ for(const color of ['#bf7693','#dfd0aa']){
+  evalJS(`state.hair='${color}';state.highlights='#efcd8c';drawCharacter();`);
+  assert(changed(undyed,lastImage.data)>10000,'Hair still recolors');
+  let protectedSkin=0;
+  for(let i=0;i<undyed.length;i+=4){
+   const original=cut[style].data;
+   if(original[i]-original[i+1]>=52&&original[i+3]>240){
+    assert.deepEqual([...lastImage.data.slice(i,i+4)],[...undyed.slice(i,i+4)],`Hair dye must not change warm skin in style ${style}`);protectedSkin++;
+   }
+   if(Math.min(...undyed.slice(i,i+3))<230)assert(Math.min(...lastImage.data.slice(i,i+3))<240,'No new clipped white halos');
+  }
+  assert(protectedSkin>50000);
+ }
+ console.log(`Style ${style}: rose, platinum, and highlights preserve skin and avoid white clipping`);
+}
+assert(fs.readFileSync('dist/styles.css','utf8').includes('.hair-thumb img{position:absolute;top:0;width:200%;height:auto;'));
+assert(!fs.readFileSync('dist/game.js','utf8').includes('background-position:'));
 // Sample original hand pixels at the game's displayed size.
 const hp=new Uint8ClampedArray(543*724*4);for(let y=0;y<724;y++)for(let x=30;x<513;x++){const si=(Math.min(1535,Math.floor(y*1536/724))*1024+Math.floor((x-30)*1024/483))*4;hp.set(hand.data.subarray(si,si+4),(y*543+x)*4);}sandbox.testHand={data:hp};
 evalJS('handPixels=testHand;state=structuredClone(initial);drawHand();');const plain=new Uint8ClampedArray(lastImage.data);

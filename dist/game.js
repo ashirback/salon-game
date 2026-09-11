@@ -39,7 +39,7 @@ function renderPanel(){
   if(options.length)html+=`<div class="panel-tabs" role="group" aria-label="${station} options">${options.map(t=>`<button data-tab="${t}" class="${tab===t?'active':''}" aria-pressed="${tab===t}">${t}</button>`).join('')}</div>`;
   html+='<div class="panel-body">';
   if(station==='hair'){
-    if(tab==='Style'){html+=label('Choose your style','4 looks to love')+`<div class="style-grid">${styleNames.map((s,i)=>`<button class="style-card ${state.style===i?'active':''}" data-key="style" data-value="${i}" aria-pressed="${state.style===i}"><span class="hair-thumb" style="background-position:${i%2*100}% ${Math.floor(i/2)*100}%"></span><span>${s}</span></button>`).join('')}</div>`+label('Hair color',colorName('hair'))+swatches('hair');}
+    if(tab==='Style'){html+=label('Choose your style','4 looks to love')+`<div class="style-grid">${styleNames.map((s,i)=>`<button class="style-card ${state.style===i?'active':''}" data-key="style" data-value="${i}" aria-pressed="${state.style===i}"><span class="hair-thumb"><img src="assets/characters.png" alt="" width="1086" height="1448" style="left:-${i%2*100}%;transform:translateY(-${Math.floor(i/2)*50}%)"></span><span>${s}</span></button>`).join('')}</div>`+label('Hair color',colorName('hair'))+swatches('hair');}
     if(tab==='Color')html+=label('Find your shade',colorName('hair'))+swatches('hair')+label('Eyebrow color',colorName('brows'))+swatches('brows');
     if(tab==='Highlights')html+=label('A little dimension',colorName('highlights'))+swatches('highlights')+`<div class="nail-note">Highlights follow your hair’s natural strands. Try caramel for a sun-kissed finish.</div>`;
     html+=`<button class="action-button" data-tool="brush">${tool==='brush'?'✓ Brush selected — drag through hair':'✧ Pick up the finishing brush'}</button>`+progressMarkup(state.brushed,'Finishing brush')+`<p class="keyboard-hint">Brush your hair in the mirror, or use the button below.</p><button class="text-button" data-action="brush">Brush through hair</button><div class="panel-note"><span>♡</span>There’s no wrong choice. Try a little of everything.</div>`;
@@ -94,10 +94,27 @@ function drawCharacter(){
     const eyeRegion=f.eyes.some(ex=>ellipse(sx,sy,ex,f.ey,14,15)<1)&&b>r*.93&&g>r*.92;
     const warm=r>g*1.12&&g>b*1.1;
     const face=ellipse(sx,sy,f.cx,254,110,148)<1;
-    const skinWeight=warm&&!brow&&!lipRegion?smooth(105,155,lum):0;
-    const hairRegion=!face&&!brow&&warm&&lum<150&&(y<675||Math.abs(x-f.cx)>115);
-    if(hairRegion){let target=hair;const strand=Math.sin(x*.075+Math.sin(y*.028)*2.5);const hi=hl?smooth(.50,.95,strand)*.68:0;target=hair.map((v,j)=>v*(1-hi)+(hl?hl[j]:v)*hi);const sh=lum/54;[r,g,b]=target.map(v=>clamp(v*sh*.85+Math.max(0,lum-90)*.4));}
-    if(skinWeight>0&&!hairRegion){[r,g,b]=[r,g,b].map((v,j)=>v*(1-skinWeight)+clamp(v*(skin[j]/skinBase[j]))*skinWeight);}
+    // Skin in shadow is as dark as hair. Use its stronger red chroma, not
+    // brightness, and explicitly protect the ears from the dye mask.
+    const ear=ellipse(sx,sy,f.cx-120,270,24,45)<1||ellipse(sx,sy,f.cx+119,270,24,45)<1;
+    const skinEvidence=smooth(35,52,r-g);
+    const skinWeight=warm&&!brow&&!lipRegion?skinEvidence:0;
+    const hairWeight=!face&&!ear&&!brow&&warm?(1-skinEvidence)*(1-smooth(170,215,lum)):0;
+    if(hairWeight>0&&(state.hair!==initial.hair||hl)){
+      const strand=Math.sin(x*.075+Math.sin(y*.028)*2.5);
+      const hi=hl?smooth(.50,.95,strand)*.68:0;
+      // Bounded shading retains strand detail without clipping pink/blonde
+      // highlights to white or creating a bright outline at mask boundaries.
+      const shade=.18+.82*Math.pow(clamp(lum/180,0,1),.8);
+      const shine=smooth(90,190,lum)*.18;
+      const original=[r,g,b];
+      [r,g,b]=original.map((v,j)=>{
+        const base=state.hair===initial.hair?v:hair[j]*shade*(1-shine)+255*shine;
+        const tint=hl?hl[j]*shade*(1-shine)+255*shine:base;
+        return v*(1-hairWeight)+(base*(1-hi)+tint*hi)*hairWeight;
+      });
+    }
+    if(skinWeight>0){[r,g,b]=[r,g,b].map((v,j)=>v*(1-skinWeight)+clamp(v*(skin[j]/skinBase[j]))*skinWeight);}
     if(brow){const factor=lum/63;[r,g,b]=brows.map(v=>clamp(v*factor));}
     if(eyeRegion){const factor=lum/95;[r,g,b]=eyes.map(v=>clamp(v*factor));}
     if(lipRegion){const factor=lum/139;[r,g,b]=lips.map(v=>clamp(v*factor));}
