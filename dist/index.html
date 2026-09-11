@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f9e4ec">
+  <meta name="description" content="Your own little beauty studio. Create a character, style their hair, unwind with skincare, play with makeup, and paint a perfect manicure to mellow jazz.">
+  <title>Velvet — Your little salon</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='20' fill='%23e86492'/%3E%3Ctext x='32' y='46' text-anchor='middle' font-size='48' fill='white' font-family='Georgia'%3Ev%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Velvet salon home"><span class="brand-icon">✧</span><span>velvet<span class="brand-small">YOUR LITTLE SALON</span></span></a>
+    <div class="studio-label">A little self-care. A lot of possibility.</div>
+    <div class="header-actions"><button id="music" class="music-button" aria-pressed="false"><span class="music-bars"><i></i><i></i><i></i><i></i></span><span id="music-label">Play jazz</span></button><button id="help" class="icon-button" aria-label="How to play">?</button></div>
+  </header>
+  <main>
+    <div class="workspace-heading"><div><span class="eyebrow">MAKE YOURSELF AT HOME</span><h1>The styling room<span>✧</span></h1></div><button id="character" class="outline-button"><span>♡</span> My character</button></div>
+    <div class="salon-layout">
+      <nav class="stations" aria-label="Salon stations">
+        <button class="station active" data-station="hair" aria-pressed="true"><span class="station-icon">✂</span><span>Hair</span><i class="station-done" data-done="hair"></i></button>
+        <button class="station" data-station="skin" aria-pressed="false"><span class="station-icon">♧</span><span>Skin care</span><i class="station-done" data-done="skin"></i></button>
+        <button class="station" data-station="makeup" aria-pressed="false"><span class="station-icon">✦</span><span>Makeup</span><i class="station-done" data-done="makeup"></i></button>
+        <button class="station" data-station="nails" aria-pressed="false"><span class="station-icon">❀</span><span>Nails</span><i class="station-done" data-done="nails"></i></button>
+        <span class="station-divider"></span><div class="free-play"><span>∞</span>Free play<br><small>Make it yours</small></div>
+      </nav>
+      <section class="mirror-room" aria-label="Interactive salon chair">
+        <div class="room-top"><span class="room-tag"><span class="tiny-star">✦</span> YOUR SALON CHAIR</span><button id="undo" class="round-button" aria-label="Undo last change" title="Undo last change">↶</button></div>
+        <div class="mirror"><div class="mirror-shine"></div><span class="mirror-sparkle sparkle-one">✦</span><span class="mirror-sparkle sparkle-two">✧</span>
+          <canvas id="portrait" width="600" height="760" aria-label="Your character. Drag the selected salon tool over the highlighted area." tabindex="0"></canvas>
+          <div id="loading-art" class="loading-art"><span>✧</span>Getting your chair ready…</div>
+          <div id="bubbles" aria-hidden="true"></div>
+        </div>
+        <div id="tool-hint" class="tool-hint"><span>✧</span> Pick a style. Make it your own.</div>
+        <div class="mirror-footer"><span class="name-label">Your beautiful canvas</span><span class="soft-pill">All styles welcome ♡</span></div>
+      </section>
+      <aside class="toolbox" aria-label="Styling controls"><div id="panel"></div></aside>
+    </div>
+    <footer class="bottom-bar"><div class="session-progress"><span class="progress-flower">✿</span><div><strong>A little time for you</strong><span id="progress-copy">Explore all four stations at your own pace.</span></div><div id="progress-dots" aria-label="0 of 4 stations completed"><i></i><i></i><i></i><i></i></div></div><button id="finish" class="primary-button">Finish my look <span>✧</span></button></footer>
+  </main>
+  <div class="page-footer">Made for a little everyday magic <span>♡</span></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <dialog id="modal"><button id="close-modal" class="close-modal" aria-label="Close dialog">×</button><div id="modal-content"></div></dialog>
+  <script src="jazz.js"></script><script src="game.js"></script>
+</body>
+</html>
