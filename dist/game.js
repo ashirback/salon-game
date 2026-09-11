@@ -18,7 +18,12 @@ const palettes={
 };
 const styleNames=['Soft waves','Chic bob','Silky straight','Bouncy curls'];
 // Feature anchors in each original tile. These follow the generated raster art.
-const features=[{cx:296,ey:243,eyes:[240,351],by:202,lip:341},{cx:263,ey:243,eyes:[208,319],by:201,lip:341},{cx:296,ey:241,eyes:[240,351],by:201,lip:336},{cx:266,ey:241,eyes:[211,322],by:201,lip:335}];
+const features=[
+  {cx:296,ey:243,eyes:[240,351],by:202,lip:341,ears:[187,405]},
+  {cx:263,ey:243,eyes:[208,319],by:201,lip:341,ears:[166,363]},
+  {cx:296,ey:241,eyes:[240,351],by:201,lip:336,ears:[186,405]},
+  {cx:266,ey:241,eyes:[211,322],by:201,lip:335,ears:[164,369]}
+];
 const nailAnchors=[{x:162,y:359,rx:30,ry:49,a:-.15},{x:335,y:190,rx:36,ry:57,a:-.03},{x:506,y:106,rx:38,ry:59,a:-.03},{x:683,y:195,rx:34,ry:52,a:.12},{x:932,y:658,rx:39,ry:63,a:.57}];
 const careNames={cleanse:'Cleanse',mask:'Hydrating mask',serum:'Glow serum'};
 function toast(text){$('#toast').textContent=text;$('#toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),2600);}
@@ -93,13 +98,16 @@ function drawCharacter(){
     const lipRegion=ellipse(sx,sy,f.cx,f.lip,40,18)<1&&r>g*1.37&&r>b*1.25;
     const eyeRegion=f.eyes.some(ex=>ellipse(sx,sy,ex,f.ey,14,15)<1)&&b>r*.93&&g>r*.92;
     const warm=r>g*1.12&&g>b*1.1;
-    const face=ellipse(sx,sy,f.cx,254,110,148)<1;
-    // Skin in shadow is as dark as hair. Use its stronger red chroma, not
-    // brightness, and explicitly protect the ears from the dye mask.
-    const ear=ellipse(sx,sy,f.cx-120,270,24,45)<1||ellipse(sx,sy,f.cx+119,270,24,45)<1;
+    const faceDistance=ellipse(sx,sy,f.cx,257,118,158);
+    const face=faceDistance<1;
+    // Each generated hairstyle places the ears a little differently. These
+    // fixed protected areas follow the actual artwork instead of asking color
+    // values to decide where the hair stops and skin begins.
+    const ear=Math.min(...f.ears.map(ex=>ellipse(sx,sy,ex,273,31,52)))<1;
+    const protectedSkin=faceDistance<1.08||ear;
     const skinEvidence=smooth(35,52,r-g);
     const skinWeight=warm&&!brow&&!lipRegion?skinEvidence:0;
-    const hairWeight=!face&&!ear&&!brow&&warm?(1-skinEvidence)*(1-smooth(170,215,lum)):0;
+    const hairWeight=!protectedSkin&&!brow&&warm?(1-skinEvidence)*(1-smooth(170,215,lum)):0;
     if(hairWeight>0&&(state.hair!==initial.hair||hl)){
       const strand=Math.sin(x*.075+Math.sin(y*.028)*2.5);
       const hi=hl?smooth(.50,.95,strand)*.68:0;

@@ -38,6 +38,12 @@ for(let style=0;style<4;style++){
   let protectedSkin=0;
   for(let i=0;i<undyed.length;i+=4){
    const original=cut[style].data;
+   const pixel=i/4,x=pixel%543,y=Math.floor(pixel/543),f=evalJS(`features[${style}]`);
+   const inFace=((x-f.cx)/121)**2+((y-257)/162)**2<1;
+   const inEar=f.ears.some(ex=>((x-ex)/31)**2+((y-273)/52)**2<1);
+   if((inFace||inEar)&&original[i+3]>240){
+    assert.deepEqual([...lastImage.data.slice(i,i+4)],[...undyed.slice(i,i+4)],`Fixed face and ear masks must reject hair dye in style ${style}`);
+   }
    if(original[i]-original[i+1]>=52&&original[i+3]>240){
     assert.deepEqual([...lastImage.data.slice(i,i+4)],[...undyed.slice(i,i+4)],`Hair dye must not change warm skin in style ${style}`);protectedSkin++;
    }
