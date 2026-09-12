@@ -20,8 +20,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Patch game.js
-        shell: python
+        shell: bash
         run: |
+          python3 <<'PY'
           from pathlib import Path
 
           path = Path('dist/game.js')
@@ -29,45 +30,41 @@ jobs:
 
           anchor = "function drawCharacter(){\n"
           helper = r'''function softenHairSkinSeams(data,source,f){
-  // Remove the dark contact-shadow fringe on the skin side where hair meets
-  // the face, ears, and neck. Only nearby source pixels that are confidently
-  // skin-toned are sampled, preserving the hair edge and strand detail.
-  const snapshot=new Uint8ClampedArray(data);
-  for(let y=80;y<650;y++)for(let x=70;x<475;x++){
-    const i=(y*543+x)*4;if(snapshot[i+3]<5)continue;
-    const faceD=ellipse(x,y,f.cx,257,118,158);
-    const earD=Math.min(...f.ears.map(ex=>ellipse(x,y,ex,273,31,52)));
-    const neckY=y-(f.lip+58);
-    const neckHalf=49+clamp(neckY,0,210)*.085;
-    const faceSeam=faceD>.82&&faceD<1.075;
-    const earSeam=earD>.48&&earD<1.10;
-    const neckSeam=neckY>0&&neckY<235&&Math.abs(Math.abs(x-f.cx)-neckHalf)<8&&Math.abs(x-f.cx)<=neckHalf+3;
-    if(!faceSeam&&!earSeam&&!neckSeam)continue;
-
-    let rr=0,gg=0,bb=0,weight=0,samples=0;
-    for(let oy=-3;oy<=3;oy++)for(let ox=-3;ox<=3;ox++){
-      if(!ox&&!oy)continue;
-      const nx=x+ox,ny=y+oy;if(nx<0||nx>=543||ny<0||ny>=724)continue;
-      const ni=(ny*543+nx)*4;if(source.data[ni+3]<5)continue;
-      const sr=source.data[ni],sg=source.data[ni+1],sb=source.data[ni+2];
-      if(!(sr>sg*1.08&&sg>sb*1.04))continue;
-      const w=1/(1+ox*ox+oy*oy);
-      rr+=snapshot[ni]*w;gg+=snapshot[ni+1]*w;bb+=snapshot[ni+2]*w;weight+=w;samples++;
-    }
-    if(samples<7||weight===0)continue;
-    rr/=weight;gg/=weight;bb/=weight;
-    const currentLum=snapshot[i]*.299+snapshot[i+1]*.587+snapshot[i+2]*.114;
-    const neighborLum=rr*.299+gg*.587+bb*.114;
-    const darkness=neighborLum-currentLum;
-    if(darkness<5)continue;
-    const mix=clamp(.42+darkness/48,.42,.88);
-    data[i]=snapshot[i]*(1-mix)+rr*mix;
-    data[i+1]=snapshot[i+1]*(1-mix)+gg*mix;
-    data[i+2]=snapshot[i+2]*(1-mix)+bb*mix;
-  }
-}
-function drawCharacter(){
-'''
+            const snapshot=new Uint8ClampedArray(data);
+            for(let y=80;y<650;y++)for(let x=70;x<475;x++){
+              const i=(y*543+x)*4;if(snapshot[i+3]<5)continue;
+              const faceD=ellipse(x,y,f.cx,257,118,158);
+              const earD=Math.min(...f.ears.map(ex=>ellipse(x,y,ex,273,31,52)));
+              const neckY=y-(f.lip+58);
+              const neckHalf=49+clamp(neckY,0,210)*.085;
+              const faceSeam=faceD>.82&&faceD<1.075;
+              const earSeam=earD>.48&&earD<1.10;
+              const neckSeam=neckY>0&&neckY<235&&Math.abs(Math.abs(x-f.cx)-neckHalf)<8&&Math.abs(x-f.cx)<=neckHalf+3;
+              if(!faceSeam&&!earSeam&&!neckSeam)continue;
+              let rr=0,gg=0,bb=0,weight=0,samples=0;
+              for(let oy=-3;oy<=3;oy++)for(let ox=-3;ox<=3;ox++){
+                if(!ox&&!oy)continue;
+                const nx=x+ox,ny=y+oy;if(nx<0||nx>=543||ny<0||ny>=724)continue;
+                const ni=(ny*543+nx)*4;if(source.data[ni+3]<5)continue;
+                const sr=source.data[ni],sg=source.data[ni+1],sb=source.data[ni+2];
+                if(!(sr>sg*1.08&&sg>sb*1.04))continue;
+                const w=1/(1+ox*ox+oy*oy);
+                rr+=snapshot[ni]*w;gg+=snapshot[ni+1]*w;bb+=snapshot[ni+2]*w;weight+=w;samples++;
+              }
+              if(samples<7||weight===0)continue;
+              rr/=weight;gg/=weight;bb/=weight;
+              const currentLum=snapshot[i]*.299+snapshot[i+1]*.587+snapshot[i+2]*.114;
+              const neighborLum=rr*.299+gg*.587+bb*.114;
+              const darkness=neighborLum-currentLum;
+              if(darkness<5)continue;
+              const mix=clamp(.42+darkness/48,.42,.88);
+              data[i]=snapshot[i]*(1-mix)+rr*mix;
+              data[i+1]=snapshot[i+1]*(1-mix)+gg*mix;
+              data[i+2]=snapshot[i+2]*(1-mix)+bb*mix;
+            }
+          }
+          function drawCharacter(){
+          '''
 
           if 'function softenHairSkinSeams' not in text:
               if anchor not in text:
@@ -82,6 +79,7 @@ function drawCharacter(){
               text = text.replace(old, new, 1)
 
           path.write_text(text)
+          PY
 
       - name: Commit game.js fix
         shell: bash
