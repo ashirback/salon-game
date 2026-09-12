@@ -1,0 +1,54 @@
+name: Deploy Velvet Salon Preview
+
+on:
+  push:
+    branches:
+      - preview-session
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}preview/
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          path: production-source
+
+      - name: Checkout preview branch
+        uses: actions/checkout@v6
+        with:
+          ref: preview-session
+          path: preview-source
+
+      - name: Build combined Pages artifact
+        shell: bash
+        run: |
+          mkdir -p site/preview
+          cp -R production-source/dist/. site/
+          cp -R preview-source/dist/. site/preview/
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload combined site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./site
+
+      - name: Deploy preview
+        id: deployment
+        uses: actions/deploy-pages@v4
