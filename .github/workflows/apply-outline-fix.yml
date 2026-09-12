@@ -29,10 +29,9 @@ jobs:
 
           anchor = "function drawCharacter(){\n"
           helper = r'''function softenHairSkinSeams(data,source,f){
-  // The generated character atlas contains a narrow dark contact-shadow where
-  // hair meets skin. Hair/skin recoloring can exaggerate that shadow into an
-  // artificial outline. Only de-fringe the skin side of those seams, using
-  // nearby source pixels that are confidently skin-toned as the replacement.
+  // Remove the dark contact-shadow fringe on the skin side where hair meets
+  // the face, ears, and neck. Only nearby source pixels that are confidently
+  // skin-toned are sampled, preserving the hair edge and strand detail.
   const snapshot=new Uint8ClampedArray(data);
   for(let y=80;y<650;y++)for(let x=70;x<475;x++){
     const i=(y*543+x)*4;if(snapshot[i+3]<5)continue;
@@ -51,8 +50,6 @@ jobs:
       const nx=x+ox,ny=y+oy;if(nx<0||nx>=543||ny<0||ny>=724)continue;
       const ni=(ny*543+nx)*4;if(source.data[ni+3]<5)continue;
       const sr=source.data[ni],sg=source.data[ni+1],sb=source.data[ni+2];
-      // Sample only genuine neighboring skin, never hair, so the portrait edge
-      // stays crisp while the unwanted dark stroke disappears.
       if(!(sr>sg*1.08&&sg>sb*1.04))continue;
       const w=1/(1+ox*ox+oy*oy);
       rr+=snapshot[ni]*w;gg+=snapshot[ni+1]*w;bb+=snapshot[ni+2]*w;weight+=w;samples++;
