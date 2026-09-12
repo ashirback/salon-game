@@ -80,6 +80,40 @@ function switchStation(next){if(busy)return toast('Let’s finish this little tr
 function loadImage(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error('Could not load '+src));im.src=src;});}
 async function loadArt(){try{const [atlas,hand]=await Promise.all([loadImage('assets/characters.png'),loadImage('assets/hand.png')]);for(let i=0;i<4;i++){const c=document.createElement('canvas');c.width=543;c.height=724;const cctx=c.getContext('2d',{willReadFrequently:true});cctx.drawImage(atlas,(i%2)*atlas.width/2,Math.floor(i/2)*atlas.height/2,atlas.width/2,atlas.height/2,0,0,543,724);tiles.push(cctx.getImageData(0,0,543,724));}const c=document.createElement('canvas');c.width=543;c.height=724;const cctx=c.getContext('2d',{willReadFrequently:true});cctx.drawImage(hand,30,0,483,724);handPixels=cctx.getImageData(0,0,543,724);ready=true;$('#loading-art').hidden=true;$('#loading-art').style.display='none';render();}catch(e){$('#loading-art').innerHTML='<span>♡</span>The artwork couldn’t load.<br><button class="text-button" id="retry-art">Try again</button>';$('#retry-art').onclick=()=>{tiles=[];loadArt();};toast('Please try loading the artwork again.');}}
 function render(){if(!ready||renderPending)return;renderPending=true;requestAnimationFrame(()=>{renderPending=false;if(station==='nails')drawHand();else drawCharacter();});}
+function softenHairSkinSeams(data,source,f){
+  const snapshot=new Uint8ClampedArray(data);
+  for(let y=80;y<650;y++)for(let x=70;x<475;x++){
+    const i=(y*543+x)*4;if(snapshot[i+3]<5)continue;
+    const faceD=ellipse(x,y,f.cx,257,118,158);
+    const earD=Math.min(...f.ears.map(ex=>ellipse(x,y,ex,273,31,52)));
+    const neckY=y-(f.lip+58);
+    const neckHalf=49+clamp(neckY,0,210)*.085;
+    const faceSeam=faceD>.82&&faceD<1.075;
+    const earSeam=earD>.48&&earD<1.10;
+    const neckSeam=neckY>0&&neckY<235&&Math.abs(Math.abs(x-f.cx)-neckHalf)<8&&Math.abs(x-f.cx)<=neckHalf+3;
+    if(!faceSeam&&!earSeam&&!neckSeam)continue;
+    let rr=0,gg=0,bb=0,weight=0,samples=0;
+    for(let oy=-3;oy<=3;oy++)for(let ox=-3;ox<=3;ox++){
+      if(!ox&&!oy)continue;
+      const nx=x+ox,ny=y+oy;if(nx<0||nx>=543||ny<0||ny>=724)continue;
+      const ni=(ny*543+nx)*4;if(source.data[ni+3]<5)continue;
+      const sr=source.data[ni],sg=source.data[ni+1],sb=source.data[ni+2];
+      if(!(sr>sg*1.08&&sg>sb*1.04))continue;
+      const w=1/(1+ox*ox+oy*oy);
+      rr+=snapshot[ni]*w;gg+=snapshot[ni+1]*w;bb+=snapshot[ni+2]*w;weight+=w;samples++;
+    }
+    if(samples<7||weight===0)continue;
+    rr/=weight;gg/=weight;bb/=weight;
+    const currentLum=snapshot[i]*.299+snapshot[i+1]*.587+snapshot[i+2]*.114;
+    const neighborLum=rr*.299+gg*.587+bb*.114;
+    const darkness=neighborLum-currentLum;
+    if(darkness<5)continue;
+    const mix=clamp(.42+darkness/48,.42,.88);
+    data[i]=snapshot[i]*(1-mix)+rr*mix;
+    data[i+1]=snapshot[i+1]*(1-mix)+gg*mix;
+    data[i+2]=snapshot[i+2]*(1-mix)+bb*mix;
+  }
+}
 function drawCharacter(){
   const source=tiles[state.style],data=new Uint8ClampedArray(source.data),f=features[state.style];const hair=rgb(state.hair),skin=rgb(state.skin),eyes=rgb(state.eyes),brows=rgb(state.brows),lips=rgb(state.lips),hl=state.highlights==='none'?null:rgb(state.highlights),blush=state.blush==='none'?null:rgb(state.blush),shadow=state.shadow==='none'?null:rgb(state.shadow);
   const skinBase=[233,169,130];
@@ -134,6 +168,7 @@ function drawCharacter(){
     }
     data[i]=r;data[i+1]=g;data[i+2]=b;
   }
+  softenHairSkinSeams(data,source,f);
   ctx.putImageData(new ImageData(data,543,724),0,0);
   if(state.freckles){ctx.fillStyle='#754731';for(let n=0;n<state.freckles*19;n++){const side=n%2?-1:1;const x=f.cx+side*(12+(Math.sin(n*71.13)*.5+.5)*61),y=f.ey+36+(Math.sin(n*19.1)*.5+.5)*30;ctx.globalAlpha=.23+(n%3)*.06;ctx.beginPath();ctx.arc(x,y,.8+(n%4)*.25,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
   if(station==='skin'&&tool==='cleanse'&&state.care.cleanse>0&&state.care.cleanse<100){ctx.fillStyle='#fff';maskMarks.forEach(p=>{ctx.globalAlpha=.55;ctx.beginPath();ctx.arc(p.x,p.y,13,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.8;ctx.beginPath();ctx.arc(p.x-5,p.y-5,4,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;}
